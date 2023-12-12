@@ -10,13 +10,22 @@ packedPFCandidates = cms.EDProducer("PATPackedCandidateProducer",
     PuppiNoLepSrc = cms.InputTag("puppiNoLep"),
     chargedHadronIsolation = cms.InputTag("chargedHadronPFTrackIsolation"),
     minPtForChargedHadronProperties = cms.double(3.0),
+
+    dEdxDataStrip = cms.InputTag("dedxHarmonic2"),
+    dEdxDataPixel = cms.InputTag("dedxPixelHarmonic2"),
+    dEdxHitInfo = cms.InputTag("dedxHitInfo"),
+    dEdxHitInfoPrescale = cms.InputTag("dedxHitInfo","prescale"), 
+    addPrescaledDeDxTracks = cms.bool(False),
+    usePrecomputedDeDxStrip = cms.bool(True),        # if these are set to True, will get estimated DeDx from DeDxData branches
+    usePrecomputedDeDxPixel = cms.bool(True),        # if set to False, will manually compute using dEdxHitInfo
+
     secondaryVerticesForWhiteList = cms.VInputTag(
       cms.InputTag("inclusiveCandidateSecondaryVertices"),
       cms.InputTag("inclusiveCandidateSecondaryVerticesCvsL"),
       cms.InputTag("generalV0Candidates","Kshort"),
       cms.InputTag("generalV0Candidates","Lambda"),
       ),
-    minPtForTrackProperties = cms.double(0.95),
+    minPtForTrackProperties = cms.double(0.5),
     minPtForLowQualityTrackProperties = cms.double(0.0),
     covarianceVersion = cms.int32(0), #so far: 0 is Phase0, 1 is Phase1
 #    covariancePackingSchemas = cms.vint32(1,257,513,769,0),  # a cheaper schema in kb/ev

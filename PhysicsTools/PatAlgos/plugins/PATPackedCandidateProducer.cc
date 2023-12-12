@@ -12,8 +12,11 @@
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
+#include "DataFormats/TrackReco/interface/DeDxData.h"
+#include "DataFormats/TrackReco/interface/DeDxHitInfo.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
+#include "RecoTracker/DeDx/interface/DeDxTools.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
@@ -42,6 +45,8 @@ namespace pat {
     ~PATPackedCandidateProducer() override;
 
     void produce(edm::StreamID, edm::Event &, const edm::EventSetup &) const override;
+
+    float getDeDx(const reco::DeDxHitInfo* hitInfo, bool doPixel, bool doStrip) const;
 
     // sorting of cands to maximize the zlib compression
     static bool candsOrdering(pat::PackedCandidate const &i, pat::PackedCandidate const &j) {
@@ -91,6 +96,14 @@ namespace pat {
     const bool storeChargedHadronIsolation_;
     const edm::EDGetTokenT<edm::ValueMap<bool>> ChargedHadronIsolation_;
 
+    const edm::EDGetTokenT<edm::ValueMap<reco::DeDxData>> gt2dedxStrip_;
+    const edm::EDGetTokenT<edm::ValueMap<reco::DeDxData>> gt2dedxPixel_;
+    const edm::EDGetTokenT<reco::DeDxHitInfoAss> gt2dedxHitInfo_;
+    const bool addPrescaledDeDxTracks_;
+    const edm::EDGetTokenT<edm::ValueMap<int>> gt2dedxHitInfoPrescale_;
+    const bool usePrecomputedDeDxStrip_;
+    const bool usePrecomputedDeDxPixel_;
+
     const double minPtForChargedHadronProperties_;
     const double minPtForTrackProperties_;
     const double minPtForLowQualityTrackProperties_;
@@ -130,6 +143,17 @@ pat::PATPackedCandidateProducer::PATPackedCandidateProducer(const edm::Parameter
       storeChargedHadronIsolation_(!iConfig.getParameter<edm::InputTag>("chargedHadronIsolation").encode().empty()),
       ChargedHadronIsolation_(
           consumes<edm::ValueMap<bool>>(iConfig.getParameter<edm::InputTag>("chargedHadronIsolation"))),
+          
+      gt2dedxStrip_(consumes<edm::ValueMap<reco::DeDxData>>(iConfig.getParameter<edm::InputTag>("dEdxDataStrip"))),
+      gt2dedxPixel_(consumes<edm::ValueMap<reco::DeDxData>>(iConfig.getParameter<edm::InputTag>("dEdxDataPixel"))),
+      gt2dedxHitInfo_(consumes<reco::DeDxHitInfoAss>(iConfig.getParameter<edm::InputTag>("dEdxHitInfo"))),
+      addPrescaledDeDxTracks_(iConfig.getParameter<bool>("addPrescaledDeDxTracks")),
+      gt2dedxHitInfoPrescale_(addPrescaledDeDxTracks_ ? consumes<edm::ValueMap<int>>(
+										     iConfig.getParameter<edm::InputTag>("dEdxHitInfoPrescale"))
+			      : edm::EDGetTokenT<edm::ValueMap<int>>()),
+      usePrecomputedDeDxStrip_(iConfig.getParameter<bool>("usePrecomputedDeDxStrip")),
+      usePrecomputedDeDxPixel_(iConfig.getParameter<bool>("usePrecomputedDeDxPixel")),
+      
       minPtForChargedHadronProperties_(iConfig.getParameter<double>("minPtForChargedHadronProperties")),
       minPtForTrackProperties_(iConfig.getParameter<double>("minPtForTrackProperties")),
       minPtForLowQualityTrackProperties_(iConfig.getParameter<double>("minPtForLowQualityTrackProperties")),
@@ -185,6 +209,22 @@ void pat::PATPackedCandidateProducer::produce(edm::StreamID, edm::Event &iEvent,
   if (storeChargedHadronIsolation_)
     iEvent.getByToken(ChargedHadronIsolation_, chargedHadronIsolationHandle);
 
+  // associate generalTracks with their DeDx data (estimator for strip dE/dx)
+  edm::Handle<edm::ValueMap<reco::DeDxData>> gt2dedxStrip;
+  iEvent.getByToken(gt2dedxStrip_, gt2dedxStrip);
+
+  // associate generalTracks with their DeDx data (estimator for pixel dE/dx)
+  edm::Handle<edm::ValueMap<reco::DeDxData>> gt2dedxPixel;
+  iEvent.getByToken(gt2dedxPixel_, gt2dedxPixel);
+
+  // associate generalTracks with their DeDx hit info (used to estimate pixel dE/dx)
+  edm::Handle<reco::DeDxHitInfoAss> gt2dedxHitInfo;
+  iEvent.getByToken(gt2dedxHitInfo_, gt2dedxHitInfo);
+  edm::Handle<edm::ValueMap<int>> gt2dedxHitInfoPrescale;
+  if (addPrescaledDeDxTracks_) {
+    iEvent.getByToken(gt2dedxHitInfoPrescale_, gt2dedxHitInfoPrescale);
+  }
+
   std::set<unsigned int> whiteList;
   std::set<reco::TrackRef> whiteListTk;
   for (auto itoken : SVWhiteLists_) {
@@ -236,14 +276,41 @@ void pat::PATPackedCandidateProducer::produce(edm::StreamID, edm::Event &iEvent,
   for (unsigned int ic = 0, nc = cands->size(); ic < nc; ++ic) {
     const reco::PFCandidate &cand = (*cands)[ic];
     const reco::Track *ctrack = nullptr;
+    bool do_dEdx = false;
     if ((abs(cand.pdgId()) == 11 || cand.pdgId() == 22) && cand.gsfTrackRef().isNonnull()) {
       ctrack = &*cand.gsfTrackRef();
+      do_dEdx = true;
     } else if (cand.trackRef().isNonnull()) {
       ctrack = &*cand.trackRef();
+      do_dEdx = true;
     }
     if (ctrack) {
       float dist = 1e99;
       int pvi = -1;
+      
+      // Adding dEdx here for now
+      float dEdxPixel = 0, dEdxStrip = 0;
+      if(do_dEdx){
+	dEdxPixel = -1;
+	dEdxStrip = -1;
+	reco::TrackRef tkref = cand.trackRef();
+	if(gt2dedxStrip.isValid() && gt2dedxStrip->contains(tkref.id())){
+	  dEdxPixel = float ((*gt2dedxPixel)[tkref].dEdx());
+	}
+	else if (gt2dedxHitInfo.isValid() && gt2dedxHitInfo->contains(tkref.id())){
+	  const reco::DeDxHitInfo* hitInfo = (*gt2dedxHitInfo)[tkref].get();
+	  dEdxPixel = getDeDx(hitInfo, true, false);
+	  std::cout << "Option 2" << std::endl;
+	}
+	if(gt2dedxPixel.isValid() && gt2dedxPixel->contains(tkref.id())){
+	  dEdxStrip = float ((*gt2dedxStrip)[tkref].dEdx());
+	}
+	else if (gt2dedxHitInfo.isValid() && gt2dedxHitInfo->contains(tkref.id())){
+	  const reco::DeDxHitInfo* hitInfo = (*gt2dedxHitInfo)[tkref].get();
+	  dEdxStrip = getDeDx(hitInfo, false, true);
+	}
+      }
+      
       for (size_t ii = 0; ii < PVs->size(); ii++) {
         float dz = std::abs(ctrack->dz(((*PVs)[ii]).position()));
         if (dz < dist) {
@@ -284,6 +351,9 @@ void pat::PATPackedCandidateProducer::produce(edm::StreamID, edm::Event &iEvent,
           pat::PackedCandidate(cand.polarP4(), vtx, ptTrk, etaAtVtx, phiAtVtx, cand.pdgId(), PVRefProd, PV.key()));
       outPtrP->back().setAssociationQuality(pat::PackedCandidate::PVAssociationQuality(qualityMap[quality]));
       outPtrP->back().setCovarianceVersion(covarianceVersion_);
+      outPtrP->back().setdEdxPixel(dEdxPixel);
+      outPtrP->back().setdEdxStrip(dEdxStrip);
+
       if (cand.trackRef().isNonnull() && PVOrig.isNonnull() && PVOrig->trackWeight(cand.trackRef()) > 0.5 &&
           quality == 7) {
         outPtrP->back().setAssociationQuality(pat::PackedCandidate::UsedInFitTight);
@@ -461,6 +531,53 @@ void pat::PATPackedCandidateProducer::produce(edm::StreamID, edm::Event &iEvent,
 
   if (not pfCandidateTypesForHcalDepth_.empty())
     iEvent.put(std::move(hcalDepthEnergyFractionsV), "hcalDepthEnergyFractions");
+}
+
+// get the estimated DeDx in either the pixels or strips (or both)
+float pat::PATPackedCandidateProducer::getDeDx(const reco::DeDxHitInfo* hitInfo, bool doPixel, bool doStrip) const {
+  if (hitInfo == nullptr) {
+    return -1;
+  }
+
+  std::vector<float> charge_vec;
+  for (unsigned int ih = 0; ih < hitInfo->size(); ih++) {
+    bool isPixel = (hitInfo->pixelCluster(ih) != nullptr);
+    bool isStrip = (hitInfo->stripCluster(ih) != nullptr);
+
+    if (isPixel && !doPixel)
+      continue;
+    if (isStrip && !doStrip)
+      continue;
+
+    // probably shouldn't happen
+    if (!isPixel && !isStrip)
+      continue;
+
+    // shape selection for strips
+    if (isStrip && !deDxTools::shapeSelection(*(hitInfo->stripCluster(ih))))
+      continue;
+
+    float Norm = 0;
+    if (isPixel)
+      Norm = 3.61e-06;  //compute the normalization factor to get the energy in MeV/mm
+    if (isStrip)
+      Norm = 3.61e-06 * 265;
+
+    //save the dE/dx in MeV/mm to a vector.
+    charge_vec.push_back(Norm * hitInfo->charge(ih) / hitInfo->pathlength(ih));
+  }
+
+  int size = charge_vec.size();
+  float result = 0.0;
+
+  //build the harmonic 2 dE/dx estimator
+  float expo = -2;
+  for (int i = 0; i < size; i++) {
+    result += pow(charge_vec[i], expo);
+  }
+  result = (size > 0) ? pow(result / size, 1. / expo) : 0.0;
+
+  return result;
 }
 
 using pat::PATPackedCandidateProducer;

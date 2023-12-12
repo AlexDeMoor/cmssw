@@ -453,6 +453,10 @@ void pat::PackedCandidate::setHcalFraction(float p) { hcalFraction_ = 100 * p; }
 
 void pat::PackedCandidate::setIsIsolatedChargedHadron(bool p) { isIsolatedChargedHadron_ = p; }
 
+//void pat::PackedCandidate::setdEdxPixel(float p) { dEdxPixel_ = p; }
+
+//void pat::PackedCandidate::setdEdxStrip(float p) { dEdxStrip_ = p; }
+
 void pat::PackedCandidate::setDTimeAssociatedPV(float aTime, float aTimeError) {
   if (aTime == 0 && aTimeError == 0) {
     packedTime_ = 0;

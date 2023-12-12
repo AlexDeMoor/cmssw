@@ -9,6 +9,8 @@
 #include "DataFormats/PatCandidates/interface/CovarianceParameterization.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
+#include "DataFormats/TrackReco/interface/DeDxHitInfo.h"
+#include "RecoTracker/DeDx/interface/DeDxTools.h"
 #include "FWCore/Utilities/interface/thread_safety_macros.h"
 #include <atomic>
 #include <mutex>
@@ -70,7 +72,22 @@ namespace pat {
           normalizedChi2_(0),
           covarianceVersion_(0),
           covarianceSchema_(0),
-          firstHit_(0) {}
+          firstHit_(0),
+          packedHitBL1_(0),
+          packedHitBL2_(0),
+          packedHitBL3_(0),
+          packedHitBL4_(0),
+          packedHitEL1_(0),
+          packedHitEL2_(0),
+          packedHitTIBL1_(0),
+          packedHitTIBL2_(0),
+          packedHitTIBL3_(0),
+          packedHitTIBL4_(0),
+          packedHitTIDL1_(0),
+          packedHitTIDL2_(0),
+          packedHitTIDL3_(0),
+          dEdxStrip_(0),
+          dEdxPixel_(0) {}
 
     explicit PackedCandidate(const reco::Candidate &c,
                              const reco::VertexRefProd &pvRefProd,
@@ -101,7 +118,23 @@ namespace pat {
           normalizedChi2_(0),
           covarianceVersion_(0),
           covarianceSchema_(0),
-          firstHit_(0) {
+          firstHit_(0),
+          packedHitBL1_(0),
+          packedHitBL2_(0),
+          packedHitBL3_(0),
+          packedHitBL4_(0),
+          packedHitEL1_(0),
+          packedHitEL2_(0),
+          packedHitTIBL1_(0),
+          packedHitTIBL2_(0),
+          packedHitTIBL3_(0),
+          packedHitTIBL4_(0),
+          packedHitTIDL1_(0),
+          packedHitTIDL2_(0),
+          packedHitTIDL3_(0),
+          dEdxStrip_(0),
+          dEdxPixel_(0)
+ {
       packBoth();
     }
 
@@ -139,7 +172,22 @@ namespace pat {
           normalizedChi2_(0),
           covarianceVersion_(0),
           covarianceSchema_(0),
-          firstHit_(0) {
+          firstHit_(0),
+          packedHitBL1_(0),
+          packedHitBL2_(0),
+          packedHitBL3_(0),
+          packedHitBL4_(0),
+          packedHitEL1_(0),
+          packedHitEL2_(0),
+          packedHitTIBL1_(0),
+          packedHitTIBL2_(0),
+          packedHitTIBL3_(0),
+          packedHitTIBL4_(0),
+          packedHitTIDL1_(0),
+          packedHitTIDL2_(0),
+          packedHitTIDL3_(0),
+          dEdxStrip_(0),
+          dEdxPixel_(0) {
       packBoth();
     }
 
@@ -177,7 +225,22 @@ namespace pat {
           normalizedChi2_(0),
           covarianceVersion_(0),
           covarianceSchema_(0),
-          firstHit_(0) {
+          firstHit_(0),
+          packedHitBL1_(0),
+          packedHitBL2_(0),
+          packedHitBL3_(0),
+          packedHitBL4_(0),
+          packedHitEL1_(0),
+          packedHitEL2_(0),
+          packedHitTIBL1_(0),
+          packedHitTIBL2_(0),
+          packedHitTIBL3_(0),
+          packedHitTIBL4_(0),
+          packedHitTIDL1_(0),
+          packedHitTIDL2_(0),
+          packedHitTIDL3_(0),
+          dEdxStrip_(0),
+      dEdxPixel_(0) {
       packBoth();
     }
 
@@ -222,6 +285,21 @@ namespace pat {
           covarianceVersion_(iOther.covarianceVersion_),
           covarianceSchema_(iOther.covarianceSchema_),
           firstHit_(iOther.firstHit_),
+          packedHitBL1_(iOther.packedHitBL1_),
+          packedHitBL2_(iOther.packedHitBL2_),
+          packedHitBL3_(iOther.packedHitBL3_),
+          packedHitBL4_(iOther.packedHitBL4_),
+          packedHitEL1_(iOther.packedHitEL1_),
+          packedHitEL2_(iOther.packedHitEL2_),
+          packedHitTIBL1_(iOther.packedHitTIBL1_),
+          packedHitTIBL2_(iOther.packedHitTIBL2_),
+          packedHitTIBL3_(iOther.packedHitTIBL3_),
+          packedHitTIBL4_(iOther.packedHitTIBL4_),
+          packedHitTIDL1_(iOther.packedHitTIDL1_),
+          packedHitTIDL2_(iOther.packedHitTIDL2_),
+          packedHitTIDL3_(iOther.packedHitTIDL3_),
+          dEdxStrip_(iOther.dEdxStrip_),
+          dEdxPixel_(iOther.dEdxPixel_),
           trkAlgoPacked_(iOther.trkAlgoPacked_) {}
 
     PackedCandidate(PackedCandidate &&iOther)
@@ -264,6 +342,21 @@ namespace pat {
           covarianceVersion_(iOther.covarianceVersion_),
           covarianceSchema_(iOther.covarianceSchema_),
           firstHit_(iOther.firstHit_),
+          packedHitBL1_(iOther.packedHitBL1_),
+          packedHitBL2_(iOther.packedHitBL2_),
+          packedHitBL3_(iOther.packedHitBL3_),
+          packedHitBL4_(iOther.packedHitBL4_),
+          packedHitEL1_(iOther.packedHitEL1_),
+          packedHitEL2_(iOther.packedHitEL2_),
+          packedHitTIBL1_(iOther.packedHitTIBL1_),
+          packedHitTIBL2_(iOther.packedHitTIBL2_),
+          packedHitTIBL3_(iOther.packedHitTIBL3_),
+          packedHitTIBL4_(iOther.packedHitTIBL4_),
+          packedHitTIDL1_(iOther.packedHitTIDL1_),
+          packedHitTIDL2_(iOther.packedHitTIDL2_),
+          packedHitTIDL3_(iOther.packedHitTIDL3_),
+          dEdxStrip_(iOther.dEdxStrip_),
+          dEdxPixel_(iOther.dEdxPixel_),
           trkAlgoPacked_(iOther.trkAlgoPacked_) {}
 
     PackedCandidate &operator=(const PackedCandidate &iOther) {
@@ -341,6 +434,22 @@ namespace pat {
       covarianceVersion_ = iOther.covarianceVersion_;
       covarianceSchema_ = iOther.covarianceSchema_;
       firstHit_ = iOther.firstHit_;
+      packedLayers_ = iOther.packedLayers_;
+      packedHitBL1_ = iOther.packedHitBL1_;
+      packedHitBL2_ = iOther.packedHitBL2_;
+      packedHitBL3_ = iOther.packedHitBL3_;
+      packedHitBL4_ = iOther.packedHitBL4_;
+      packedHitEL1_ = iOther.packedHitEL1_;
+      packedHitEL2_ = iOther.packedHitEL2_;
+      packedHitTIBL1_= iOther.packedHitTIBL1_;
+      packedHitTIBL2_= iOther.packedHitTIBL2_;
+      packedHitTIBL3_= iOther.packedHitTIBL3_;
+      packedHitTIBL4_= iOther.packedHitTIBL4_;
+      packedHitTIDL1_= iOther.packedHitTIDL1_;
+      packedHitTIDL2_= iOther.packedHitTIDL2_;
+      packedHitTIDL3_= iOther.packedHitTIDL3_;
+      dEdxStrip_ = iOther.dEdxStrip_;
+      dEdxPixel_ = iOther.dEdxPixel_;
       trkAlgoPacked_ = iOther.trkAlgoPacked_;
       return *this;
     }
@@ -383,11 +492,26 @@ namespace pat {
       pvRefKey_ = iOther.pvRefKey_;
       delete m_.exchange(iOther.m_.exchange(nullptr));
       packedHits_ = iOther.packedHits_;
-      packedLayers_ = iOther.packedLayers_;
       normalizedChi2_ = iOther.normalizedChi2_;
       covarianceVersion_ = iOther.covarianceVersion_;
       covarianceSchema_ = iOther.covarianceSchema_;
       firstHit_ = iOther.firstHit_;
+      packedLayers_ = iOther.packedLayers_;
+      packedHitBL1_ = iOther.packedHitBL1_;
+      packedHitBL2_ = iOther.packedHitBL2_;
+      packedHitBL3_ = iOther.packedHitBL3_;
+      packedHitBL4_ = iOther.packedHitBL4_;
+      packedHitEL1_ = iOther.packedHitEL1_;
+      packedHitEL2_ = iOther.packedHitEL2_;
+      packedHitTIBL1_= iOther.packedHitTIBL1_;
+      packedHitTIBL2_= iOther.packedHitTIBL2_;
+      packedHitTIBL3_= iOther.packedHitTIBL3_;
+      packedHitTIBL4_= iOther.packedHitTIBL4_;
+      packedHitTIDL1_= iOther.packedHitTIDL1_;
+      packedHitTIDL2_= iOther.packedHitTIDL2_;
+      packedHitTIDL3_= iOther.packedHitTIDL3_;
+      dEdxStrip_ = iOther.dEdxStrip_;
+      dEdxPixel_ = iOther.dEdxPixel_;
       trkAlgoPacked_ = iOther.trkAlgoPacked_;
       return *this;
     }
@@ -644,6 +768,75 @@ namespace pat {
         numberOfStripHits_ = trackStripHitsMask;
 
       packedHits_ = (numberOfPixelHits_ & trackPixelHitsMask) | (numberOfStripHits_ << trackStripHitsShift);
+
+      // Adding the new per layer hits vars for the pixel layers //
+      const reco::HitPattern &p = tk.hitPattern();
+
+      //Pixel barrel 
+      int nhitpixelBarrelLayer1 = 0;
+      int nhitpixelBarrelLayer2 = 0;
+      int nhitpixelBarrelLayer3 = 0;
+      int nhitpixelBarrelLayer4 = 0;
+      //Pixel Endcap 
+      int nhitpixelEndcapLayer1 = 0;
+      int nhitpixelEndcapLayer2 = 0;
+      //Strip TIB
+      int Cpfcan_nhitstripTIBLayer1 = 0;
+      int Cpfcan_nhitstripTIBLayer2 = 0;
+      int Cpfcan_nhitstripTIBLayer3 = 0;
+      int Cpfcan_nhitstripTIBLayer4 = 0;
+      //Strip TID
+      int Cpfcan_nhitstripTIDLayer1 = 0;
+      int Cpfcan_nhitstripTIDLayer2 = 0;
+      int Cpfcan_nhitstripTIDLayer3 = 0;
+
+      //Loop over all the hits of the track, get the valid hits and increment the number of hits for the a pixel layer if associated with one of them
+      for(int nh = 0; nh < p.numberOfAllHits(reco::HitPattern::TRACK_HITS); nh++){
+	uint32_t hit = p.getHitPattern(reco::HitPattern::TRACK_HITS, nh);
+	if(p.validHitFilter(hit)){
+	  if(p.pixelBarrelHitFilter(hit)){
+	    if(p.getLayer(hit)==1) nhitpixelBarrelLayer1 = nhitpixelBarrelLayer1+1;
+	    if(p.getLayer(hit)==2) nhitpixelBarrelLayer2 = nhitpixelBarrelLayer2+1;
+	    if(p.getLayer(hit)==3) nhitpixelBarrelLayer3 = nhitpixelBarrelLayer3+1;
+	    if(p.getLayer(hit)==4) nhitpixelBarrelLayer4 = nhitpixelBarrelLayer4+1;
+	  } 
+	  //Pixel Endcap
+	  if(p.pixelEndcapHitFilter(hit)){
+	    if(p.getLayer(hit)==1) nhitpixelEndcapLayer1 = nhitpixelEndcapLayer1+1;
+	    if(p.getLayer(hit)==2) nhitpixelEndcapLayer2 = nhitpixelEndcapLayer2+1;
+	  }
+	  //Strip TIB
+	  if(p.stripTIBHitFilter(hit)){
+	    //std::cout << "valid hit found in TIB layer " << p.getLayer(hit) << std::endl;
+	    if(p.getLayer(hit)==1) Cpfcan_nhitstripTIBLayer1 = Cpfcan_nhitstripTIBLayer1+1;
+	    if(p.getLayer(hit)==2) Cpfcan_nhitstripTIBLayer2 = Cpfcan_nhitstripTIBLayer2+1;
+	    if(p.getLayer(hit)==3) Cpfcan_nhitstripTIBLayer3 = Cpfcan_nhitstripTIBLayer3+1;
+	    if(p.getLayer(hit)==4) Cpfcan_nhitstripTIBLayer4 = Cpfcan_nhitstripTIBLayer4+1;
+	  } 
+	  //Strip TID
+	  if(p.stripTIDHitFilter(hit)){
+	    //std::cout << "valid hit found in TID layer " << p.getLayer(hit) << std::endl;
+	    if(p.getLayer(hit)==1) Cpfcan_nhitstripTIDLayer1 = Cpfcan_nhitstripTIDLayer1+1;
+	    if(p.getLayer(hit)==2) Cpfcan_nhitstripTIDLayer2 = Cpfcan_nhitstripTIDLayer2+1;
+	    if(p.getLayer(hit)==3) Cpfcan_nhitstripTIDLayer3 = Cpfcan_nhitstripTIDLayer3+1;
+	  } 
+	}
+      }
+
+      packedHitBL1_ = nhitpixelBarrelLayer1;
+      packedHitBL2_ = nhitpixelBarrelLayer2;
+      packedHitBL3_ = nhitpixelBarrelLayer3;
+      packedHitBL4_ = nhitpixelBarrelLayer4;
+      packedHitEL1_ = nhitpixelEndcapLayer1;
+      packedHitEL2_ = nhitpixelEndcapLayer2;
+      packedHitTIBL1_= Cpfcan_nhitstripTIBLayer1;
+      packedHitTIBL2_= Cpfcan_nhitstripTIBLayer2;
+      packedHitTIBL3_= Cpfcan_nhitstripTIBLayer3;
+      packedHitTIBL4_= Cpfcan_nhitstripTIBLayer4;
+      packedHitTIDL1_= Cpfcan_nhitstripTIDLayer1;
+      packedHitTIDL2_= Cpfcan_nhitstripTIDLayer2;
+      packedHitTIDL3_= Cpfcan_nhitstripTIDLayer3;
+
     }
 
     virtual void setTrackProperties(const reco::Track &tk,
@@ -674,11 +867,76 @@ namespace pat {
       packedHits_ =
           (nPixelHits & trackPixelHitsMask) | (((nHits - nPixelHits) & trackStripHitsMask) << trackStripHitsShift);
     }
+    
+    /*virtual void setdEdxStrip(const reco::DeDxHitInfo* hitInfo) {
+  	if (hitInfo == nullptr) {
+    		dEdxStrip_ =  -1;
+  	}
+  	
+  	std::vector<float> charge_vec;
+	for (unsigned int ih = 0; ih < hitInfo->size(); ih++) {
+    		bool isStrip = (hitInfo->stripCluster(ih) != nullptr);
+		
+		if (isStrip){
+    			float Norm = 3.61e-06 * 265;
+			charge_vec.push_back(Norm * hitInfo->charge(ih) / hitInfo->pathlength(ih));
+    		}
+	}
+	int size = charge_vec.size();
+	float result = 0.0;
+	float expo = -2;
+
+	for (int i = 0; i < size; i++) {
+		result += pow(charge_vec[i], expo);
+  	}
+  	result = (size > 0) ? pow(result / size, 1. / expo) : 0.0;
+  	dEdxStrip_ = result;
+    }
+    
+    virtual void setdEdxPixel(const reco::DeDxHitInfo* hitInfo) {
+  	if (hitInfo == nullptr) {
+    		dEdxPixel_ =  -1;
+  	}
+  	
+  	std::vector<float> charge_vec;
+	for (unsigned int ih = 0; ih < hitInfo->size(); ih++) {
+    		bool isPixel = (hitInfo->pixelCluster(ih) != nullptr);
+    		
+    		if (isPixel){
+    			float Norm = 3.61e-06;
+			charge_vec.push_back(Norm * hitInfo->charge(ih) / hitInfo->pathlength(ih));
+    		}
+	}
+	int size = charge_vec.size();
+	float result = 0.0;
+	float expo = -2;
+
+	for (int i = 0; i < size; i++) {
+		result += pow(charge_vec[i], expo);
+  	}
+  	result = (size > 0) ? pow(result / size, 1. / expo) : 0.0;
+  	dEdxPixel_ = result;
+    }*/
 
     int numberOfPixelHits() const { return (packedHits_ & trackPixelHitsMask) + pixelLayersWithMeasurement(); }
     int numberOfHits() const {
       return (packedHits_ >> trackStripHitsShift) + stripLayersWithMeasurement() + numberOfPixelHits();
     }
+
+    int numberOfPixelHitsBarrelLayer1() const{ return packedHitBL1_; }
+    int numberOfPixelHitsBarrelLayer2() const{ return packedHitBL2_; }
+    int numberOfPixelHitsBarrelLayer3() const{ return packedHitBL3_; }
+    int numberOfPixelHitsBarrelLayer4() const{ return packedHitBL4_; }
+    int numberOfPixelHitsEndcapLayer1() const{ return packedHitEL1_; }
+    int numberOfPixelHitsEndcapLayer2() const{ return packedHitEL2_; }
+    int numberOfStripHitsTIBLayer1() const{ return packedHitTIBL1_; }
+    int numberOfStripHitsTIBLayer2() const{ return packedHitTIBL2_; }
+    int numberOfStripHitsTIBLayer3() const{ return packedHitTIBL2_; }
+    int numberOfStripHitsTIBLayer4() const{ return packedHitTIBL4_; }
+    int numberOfStripHitsTIDLayer1() const{ return packedHitTIDL1_; }
+    int numberOfStripHitsTIDLayer2() const{ return packedHitTIDL2_; }
+    int numberOfStripHitsTIDLayer3() const{ return packedHitTIDL3_; }
+    
     int pixelLayersWithMeasurement() const { return packedLayers_ & trackPixelHitsMask; }
     int stripLayersWithMeasurement() const { return (packedLayers_ >> trackStripHitsShift); }
     int trackerLayersWithMeasurement() const { return stripLayersWithMeasurement() + pixelLayersWithMeasurement(); }
@@ -974,6 +1232,11 @@ namespace pat {
     }  /// Flag isolation (as in particle flow, i.e. at calorimeter surface rather
     /// than at PV) flag for charged hadrons
 
+    void setdEdxPixel(float p) {dEdxPixel_ = p;}
+    float dEdxPixel() const { return dEdxPixel_; }
+    void setdEdxStrip(float p) {dEdxStrip_ = p;}
+    float dEdxStrip() const { return dEdxStrip_; }
+
     struct PackedCovariance {
       PackedCovariance()
           : dxydxy(0), dxydz(0), dzdz(0), dlambdadz(0), dphidxy(0), dptdpt(0), detadeta(0), dphidphi(0) {}
@@ -1123,6 +1386,9 @@ namespace pat {
 
     /// details (hit pattern) of the first hit on track
     uint16_t firstHit_;
+    uint16_t packedHitBL1_,packedHitBL2_,packedHitBL3_,packedHitBL4_,packedHitEL1_,packedHitEL2_;
+    uint16_t packedHitTIBL1_,packedHitTIBL2_,packedHitTIBL3_,packedHitTIBL4_,packedHitTIDL1_,packedHitTIDL2_,packedHitTIDL3_;
+    float dEdxStrip_=-1, dEdxPixel_=-1;
 
     /// track algorithm details
     uint16_t trkAlgoPacked_ = 0;
