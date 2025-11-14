@@ -490,6 +490,12 @@ void VirtualJetProducer::inputTowers() {
           fjInputs_.emplace_back(input.px() * w, input.py() * w, input.pz() * w, input.energy() * w);
           fjInputs_.back().set_user_index(i - inBegin);
         }
+        // AlexDeMoor: I add the ghost weight 0 constituent here
+        else if (w == 0) {
+          float g_w = 1e-8;
+          fjInputs_.emplace_back(input.px() * g_w, input.py() * g_w, input.pz() * g_w, input.energy() * g_w);
+          fjInputs_.back().set_user_index(i - inBegin);
+		}
       }
     }
   }
